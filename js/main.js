@@ -1,0 +1,272 @@
+import { state, COMPUTER_USERNAME, isRealAdmin } from './state.js';
+import * as api from './api.js';
+import * as ui from './ui.js';
+
+// --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', async () => {
+    // UI Event Listeners for Filters & Views
+    const roleSelector = document.getElementById('role');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    const viewBtns = {
+        cards: document.getElementById('viewCardsBtn'),
+        calendar: document.getElementById('viewCalendarBtn'),
+        approvals: document.getElementById('viewApprovalsBtn'),
+        admin: document.getElementById('viewAdminBtn'),
+        config: document.getElementById('viewConfigBtn')
+    };
+
+    const views = {
+        cards: document.getElementById('roomsGrid'),
+        calendar: document.getElementById('calendarView'),
+        approvals: document.getElementById('approvalsView'),
+        admin: document.getElementById('adminView'),
+        config: document.getElementById('configView')
+    };
+
+    function switchView(viewName) {
+        ui.hideAllViews();
+        viewBtns[viewName].classList.add('active');
+        views[viewName].style.display = viewName === 'cards' ? 'grid' : 'block';
+        
+        // Render specific content if needed
+        if(viewName === 'calendar') ui.renderCalendar();
+        if(viewName === 'approvals') ui.renderApprovals();
+        if(viewName === 'admin') ui.renderAdminRooms();
+        if(viewName === 'config') ui.renderConfigAdmins();
+    }
+
+    viewBtns.cards.addEventListener('click', () => switchView('cards'));
+    viewBtns.calendar.addEventListener('click', () => switchView('calendar'));
+    viewBtns.approvals.addEventListener('click', () => switchView('approvals'));
+    viewBtns.admin.addEventListener('click', () => switchView('admin'));
+    viewBtns.config.addEventListener('click', () => switchView('config'));
+
+    roleSelector.addEventListener('change', (e) => {
+        state.role = e.target.value;
+        ui.updateRoleUI();
+        ui.renderRooms(); 
+        if (views.calendar.style.display !== 'none') ui.renderCalendar();
+        ui.showToast(`Rol cambiado a: ${e.target.options[e.target.selectedIndex].text}`, 'success');
+    });
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            filterBtns.forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            state.filter = e.target.dataset.filter;
+            ui.renderRooms();
+            if (views.calendar.style.display !== 'none') ui.renderCalendar();
+        });
+    });
+
+    // Modals
+    document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+    document.getElementById('cancelBtn').addEventListener('click', closeModal);
+    document.getElementById('modalOverlay').addEventListener('click', closeModal);
+    document.getElementById('confirmBtn').addEventListener('click', handleConfirmBooking);
+
+    // Initial load
+    ui.showToast('Cargando datos...', 'info');
+    const res = await api.fetchAllData();
+    if(res.success) {
+        ui.updateRoleUI();
+        ui.renderRooms();
+        if (window.lucide) window.lucide.createIcons();
+    } else {
+        ui.showToast('Error cargando información', 'error');
+    }
+});
+
+// --- GLOBAL EXPOSED FUNCTIONS (for onclick in HTML string templates) ---
+function isOverlapping(roomId, newStart, newEnd) {
+    return state.bookings.some(b => b.roomId == roomId && newStart < b.end_time && b.start_time < newEnd);
+}
+
+window.openBookingModal = (roomId) => {
+    const room = state.rooms.find(r => r.id === roomId);
+    state.selectedRoom = room;
+
+    const modal = document.getElementById('bookingModal');
+    document.getElementById('modalTitle').textContent = `Reservar: ${room.name}`;
+    document.getElementById('modalDescription').textContent = `Aforo: ${room.capacity} pers. | Equip.: ${room.equipment}`;
+    
+    document.getElementById('modalStatusMessage').style.display = 'none';
+    document.getElementById('bookingStart').value = '';
+    document.getElementById('bookingEnd').value = '';
+    document.getElementById('bookingReason').value = '';
+    
+    const permission = ui.canUserBook(room, state.role);
+    document.getElementById('confirmBtn').textContent = permission.buttonText;
+    modal.classList.add('show');
+};
+
+function closeModal() { 
+    document.getElementById('bookingModal').classList.remove('show'); 
+    state.selectedRoom = null; 
+}
+window.closeModal = closeModal;
+
+async function handleConfirmBooking() {
+    const startVal = document.getElementById('bookingStart').value;
+    const endVal = document.getElementById('bookingEnd').value;
+    const reason = document.getElementById('bookingReason').value || 'Reserva estándar';
+    const statusMsg = document.getElementById('modalStatusMessage');
+
+    if (!startVal || !endVal) {
+        statusMsg.style.display = 'block'; statusMsg.className = 'status-message error'; statusMsg.textContent = 'Indica el horario de inicio y fin.'; return;
+    }
+
+    const start = new Date(startVal).getTime();
+    const end = new Date(endVal).getTime();
+
+    if (end <= start) {
+        statusMsg.style.display = 'block'; statusMsg.className = 'status-message error'; statusMsg.textContent = 'El fin debe ser posterior al inicio.'; return;
+    }
+
+    const room = state.selectedRoom;
+    if (isOverlapping(room.id, start, end)) {
+        statusMsg.style.display = 'block'; statusMsg.className = 'status-message error'; statusMsg.textContent = 'Este horario ya está ocupado.'; return;
+    }
+
+    const bookingStatus = (room.type === 'type3' && !isRealAdmin()) ? 'pending' : (room.type === 'type2' ? 'manager' : 'confirmed');
+    
+    const { error } = await api.createBooking(room.id, start, end, reason, bookingStatus);
+    
+    if (error) {
+        statusMsg.style.display = 'block'; statusMsg.className = 'status-message error'; statusMsg.textContent = 'Error guardando reserva.'; return;
+    }
+
+    await api.fetchAllData();
+    closeModal();
+    if (document.getElementById('calendarView').style.display === 'block') ui.renderCalendar();
+    
+    if (bookingStatus === 'pending') {
+        if (document.getElementById('approvalsView').style.display === 'block') ui.renderApprovals();
+        ui.showToast('Solicitud enviada para aprobación.', 'success');
+    } else {
+        ui.showToast('¡Reserva confirmada!', 'success');
+    }
+}
+window.handleConfirmBooking = handleConfirmBooking;
+
+window.handleApproval = async (id, isApproved) => {
+    await api.updateApprovalProcess(id, isApproved);
+    await api.fetchAllData();
+    if (document.getElementById('approvalsView').style.display !== 'none') ui.renderApprovals();
+    if (document.getElementById('calendarView').style.display !== 'none') ui.renderCalendar();
+    ui.showToast(isApproved ? 'Reserva aprobada.' : 'Solicitud rechazada.', isApproved ? 'success' : 'info');
+};
+
+window.openRoomModal = (id = null) => {
+    const modal = document.getElementById('roomModal');
+    document.getElementById('roomIdInput').value = '';
+    document.getElementById('roomNameInput').value = '';
+    document.getElementById('roomCapacityInput').value = '';
+    document.getElementById('roomTypeInput').value = 'type1';
+    document.getElementById('roomEquipInput').value = '';
+    document.getElementById('roomImageInput').value = '';
+    
+    if (id) {
+        document.getElementById('roomModalTitle').textContent = 'Editar Sala';
+        const room = state.rooms.find(r => r.id === id);
+        if (room) {
+            document.getElementById('roomIdInput').value = room.id;
+            document.getElementById('roomNameInput').value = room.name;
+            document.getElementById('roomCapacityInput').value = room.capacity;
+            document.getElementById('roomTypeInput').value = room.type;
+            document.getElementById('roomEquipInput').value = room.equipment;
+            document.getElementById('roomImageInput').value = room.imageUrl;
+        }
+    } else {
+        document.getElementById('roomModalTitle').textContent = 'Nueva Sala';
+    }
+    modal.classList.add('show');
+};
+
+window.closeRoomModal = () => { document.getElementById('roomModal').classList.remove('show'); };
+
+window.handleSaveRoom = async () => {
+    const id = document.getElementById('roomIdInput').value;
+    const name = document.getElementById('roomNameInput').value.trim();
+    const capacity = parseInt(document.getElementById('roomCapacityInput').value);
+    const type = document.getElementById('roomTypeInput').value;
+    const equipment = document.getElementById('roomEquipInput').value.trim() || 'Estándar';
+    const imageUrl = document.getElementById('roomImageInput').value.trim();
+
+    if (!name || isNaN(capacity) || capacity <= 0) { ui.showToast('Datos inválidos.', 'error'); return; }
+
+    const payload = { name, capacity, type, equipment, "imageUrl": imageUrl || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800' };
+
+    await api.dbSaveRoom(id, payload);
+    await api.fetchAllData();
+    window.closeRoomModal();
+    if(document.getElementById('adminView').style.display === 'block') ui.renderAdminRooms();
+    ui.renderRooms();
+    ui.showToast('Cambios guardados exitosamente.', 'success');
+};
+
+window.deleteRoom = async (id) => {
+    if (confirm('¿Eliminar sala definitivamente? Sus reservas también se borrarán.')) {
+        await api.dbDeleteRoom(id);
+        await api.fetchAllData();
+        ui.renderAdminRooms();
+        ui.renderRooms();
+        ui.showToast('Sala eliminada.', 'info');
+    }
+};
+
+window.cancelBooking = async (id) => {
+    const booking = state.bookings.find(b => b.id === id);
+    if (!booking) return;
+
+    const isOwner = booking.requested_by === COMPUTER_USERNAME;
+    if (!isRealAdmin() && !isOwner) {
+        ui.showToast('Solo puedes cancelar tus reservas.', 'error');
+        return;
+    }
+    
+    if (confirm('¿Liberar la sala en este horario?')) {
+        await api.dbCancelBooking(id);
+        await api.fetchAllData();
+        if (document.getElementById('calendarView').style.display !== 'none') ui.renderCalendar();
+        ui.showToast('Horario liberado.', 'info');
+    }
+};
+
+window.addAdminUser = async () => {
+    const input = document.getElementById('newAdminUsername');
+    const username = input.value.trim().toLowerCase();
+    const role = document.getElementById('newUserRole').value;
+    
+    if(!username) { ui.showToast('Escribe un usuario.', 'error'); return; }
+    
+    const existing = state.userRolesDb.find(a => a.username === username);
+    if(existing) {
+        if(existing.role !== role) {
+            await api.dbUpdateUserRole(existing.id, role);
+            ui.showToast(`Rol actualizado.`, 'success');
+        }
+    } else {
+        await api.dbAddUserRole(username, role);
+        ui.showToast(`Usuario agregado.`, 'success');
+    }
+    
+    input.value = '';
+    await api.fetchAllData();
+    ui.renderConfigAdmins();
+    ui.updateRoleUI();
+};
+
+window.removeAdminUser = async (id, username) => {
+    if (username === COMPUTER_USERNAME) {
+        if (!confirm('Peligro: Te quitarás tus permisos. ¿Seguro?')) return;
+    } else {
+        if (!confirm(`¿Quitar accesos a ${username}?`)) return;
+    }
+    
+    await api.dbRemoveUserRole(id);
+    await api.fetchAllData();
+    ui.renderConfigAdmins();
+    ui.updateRoleUI();
+    ui.showToast('Permisos revocados.', 'info');
+};
