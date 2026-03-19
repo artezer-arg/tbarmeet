@@ -96,10 +96,14 @@
                 <!-- Configuracion View (Admin Roles) -->
                 <div class="config-view" id="configView" style="display: none;">
                     <div class="approvals-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
-                        <h3>Privilegios de Administrador</h3>
-                        <div style="display:flex; gap:10px;">
-                            <input type="text" id="newAdminUsername" placeholder="Nombre de usuario (ej: jose_m)" style="padding:8px 16px; border-radius:98px; border:1px solid var(--border-color); outline:none; font-family: inherit;">
-                            <button class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:15px; border-radius:980px;" onclick="addAdminUser()"><i data-lucide="user-plus"></i> Dar Permiso</button>
+                        <h3>Gestión de Roles y Accesos</h3>
+                        <div style="display:flex; gap:10px; align-items: center;">
+                            <input type="text" id="newAdminUsername" placeholder="Nombre de usuario (ej: jose_m)" style="padding:8px 16px; border-radius:98px; border:1px solid var(--border-color); outline:none; font-family: inherit; width: 250px;">
+                            <select id="newUserRole" style="padding:8px 16px; border-radius:98px; border:1px solid var(--border-color); outline:none; font-family: inherit;">
+                                <option value="admin">Administrador</option>
+                                <option value="manager">Gerente Ejecutivo</option>
+                            </select>
+                            <button class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:15px; border-radius:980px;" onclick="addAdminUser()"><i data-lucide="user-plus"></i> Añadir Permiso</button>
                         </div>
                     </div>
                     <div class="admin-list" id="configAdminsList">

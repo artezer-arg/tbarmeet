@@ -14,7 +14,7 @@ const ROOM_TYPES = {
 let mockRooms = [];
 let globalBookings = [];
 let mockApprovals = [];
-let adminUsers = [];
+let userRolesDb = [];
 
 const state = {
     role: 'user', // user, manager, admin
@@ -34,8 +34,8 @@ async function fetchAllData() {
         globalBookings = bookingsData || [];
 
         try {
-            const { data: adData } = await db.from('admin_users').select('*').order('username');
-            adminUsers = adData || [];
+            const { data: adData } = await db.from('user_roles').select('*').order('username');
+            userRolesDb = adData || [];
         } catch(e) {}
 
         mockApprovals = [];
@@ -154,9 +154,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
 });
 
-// --- HELPER ADMINISTRATIVO REAL ---
+// --- HELPERS ADMINISTRATIVOS REALES ---
 function isRealAdmin() {
-    return state.role === 'admin' || adminUsers.some(a => a.username === COMPUTER_USERNAME);
+    return state.role === 'admin' || userRolesDb.some(a => a.username === COMPUTER_USERNAME && a.role === 'admin');
+}
+function isRealManager() {
+    // Si estás forzado en el simulador a manager, o tu usuario DB tiene rol manager/admin.
+    return state.role === 'manager' || userRolesDb.some(a => a.username === COMPUTER_USERNAME && (a.role === 'manager' || a.role === 'admin'));
 }
 
 // --- RENDERING MAIN ---
@@ -207,7 +211,7 @@ function canUserBook(room, role) {
     const isAdm = isRealAdmin();
     if (room.type === ROOM_TYPES.type1.id) return { allowed: true, buttonText: 'Reservar (Inmediata)' };
     if (room.type === ROOM_TYPES.type2.id) {
-        if (role === 'manager' || isAdm) return { allowed: true, buttonText: 'Reservar (Ejecutiva)' };
+        if (isRealManager() || isAdm) return { allowed: true, buttonText: 'Reservar (Ejecutiva)' };
         return { allowed: false, buttonText: 'Solo Gerentes' };
     }
     if (room.type === ROOM_TYPES.type3.id) {
@@ -532,18 +536,23 @@ function renderConfigAdmins() {
     let html = `
         <div style="overflow-x: auto;">
         <table class="admin-table">
-            <thead><tr><th>Usuario VIP</th><th>Nivel de Acceso</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Usuario con Privilegios</th><th>Nivel de Rol</th><th>Acciones</th></tr></thead>
             <tbody>
     `;
 
-    adminUsers.forEach(admin => {
+    userRolesDb.forEach(user => {
+        const isAdm = user.role === 'admin';
+        const roleLabel = isAdm ? 'Administrador (Total)' : 'Gerente (Ejecutivas)';
+        const icon = isAdm ? 'shield-check' : 'briefcase';
+        const color = isAdm ? 'var(--primary-color)' : 'var(--text-primary)';
+        
         html += `
             <tr>
-                <td><i data-lucide="shield-check" style="color:var(--primary-color);"></i> <strong>${admin.username}</strong></td>
-                <td>Control Total</td>
+                <td><i data-lucide="${icon}" style="color:${color};"></i> <strong>${user.username}</strong></td>
+                <td>${roleLabel}</td>
                 <td>
                     <div class="admin-actions">
-                        <button class="btn-icon delete" title="Revocar Permisos" onclick="removeAdminUser(${admin.id}, '${admin.username}')"><i data-lucide="user-minus"></i></button>
+                        <button class="btn-icon delete" title="Revocar Permisos" onclick="removeAdminUser(${user.id}, '${user.username}')"><i data-lucide="user-minus"></i></button>
                     </div>
                 </td>
             </tr>
@@ -556,29 +565,44 @@ function renderConfigAdmins() {
 
 async function addAdminUser() {
     const input = document.getElementById('newAdminUsername');
+    const roleSelect = document.getElementById('newUserRole');
     const username = input.value.trim().toLowerCase();
+    const role = roleSelect.value;
     
     if(!username) { showToast('Escribe un nombre de usuario válido.'); return; }
-    if(adminUsers.some(a => a.username === username)) { showToast('Ese usuario ya es administrador.'); return; }
-
-    const { error } = await db.from('admin_users').insert([{ username }]);
-    if (error) { showToast('❌ Error DB al añadir administrador'); return; }
+    
+    // Si ya existe el usuario, evitar duplicidad
+    const existing = userRolesDb.find(a => a.username === username);
+    if(existing) {
+        if(existing.role === role) {
+            showToast('Ese usuario ya posee el rol especificado.'); return;
+        } else {
+            // Actualizar su rol existente
+            const { error } = await db.from('user_roles').update({ role }).eq('id', existing.id);
+            if (error) { showToast('❌ Error al actualizar el rol.'); return; }
+            showToast(`✅ Rol de ${username} actualizado exitosamente a ${role}.`);
+        }
+    } else {
+        // Insertar nuevo usuario por primera vez
+        const { error } = await db.from('user_roles').insert([{ username, role }]);
+        if (error) { showToast('❌ Error DB al asignar rol'); return; }
+        showToast(`✅ ${username} añadido exitosamente como ${role}.`);
+    }
     
     input.value = '';
     await fetchAllData();
     renderConfigAdmins();
     if (window.updateRoleUI) window.updateRoleUI();
-    showToast(`✅ ${username} ahora es Administrador del sistema.`);
 }
 
 async function removeAdminUser(id, username) {
     if (username === COMPUTER_USERNAME) {
-        if (!confirm('Peligro: Te estás quitando los permisos de administrador a ti mismo. ¿Estás seguro?')) return;
+        if (!confirm('Peligro: Te estás quitando tus propios permisos a ti mismo. ¿Estás seguro?')) return;
     } else {
-        if (!confirm(`¿Estás seguro de quitar el cargo de administrador a ${username}?`)) return;
+        if (!confirm(`¿Estás seguro de quitar todo acceso a ${username}?`)) return;
     }
     
-    const { error } = await db.from('admin_users').delete().eq('id', id);
+    const { error } = await db.from('user_roles').delete().eq('id', id);
     if (error) { showToast('❌ Error BD al remover administrador'); return; }
     
     await fetchAllData();
