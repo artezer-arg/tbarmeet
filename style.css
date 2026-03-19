@@ -84,6 +84,10 @@ body {
 .logo-text h1 { font-weight: 600; font-size: 1.25rem; letter-spacing: -0.02em; border-left: 2px solid var(--border-color); padding-left: 1rem; }
 .logo-text span { color: var(--primary-color); }
 
+.user-controls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+.user-badge { display: flex; align-items: center; background: rgba(0,0,0,0.03); padding: 0.5rem 1rem; border-radius: 99px; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); border: 1px solid var(--border-color); }
+.user-badge i { margin-right: 0.5rem; }
+
 .role-selector { display: flex; align-items: center; }
 .select-wrapper {
     position: relative;

@@ -4,6 +4,9 @@ import * as ui from './ui.js';
 
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', async () => {
+    // Show computer username
+    document.getElementById('displayUsername').textContent = COMPUTER_USERNAME;
+    
     // UI Event Listeners for Filters & Views
     const roleSelector = document.getElementById('role');
     const filterBtns = document.querySelectorAll('.filter-btn');

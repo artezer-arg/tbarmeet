@@ -26,15 +26,21 @@
                 </div>
             </div>
             
-            <div class="role-selector">
-                <label for="role" class="sr-only">Rol actual</label>
-                <div class="select-wrapper">
-                    <i data-lucide="user" class="select-icon"></i>
-                    <select id="role">
-                        <option value="user">Colaborador</option>
-                        <option value="manager">Gerencia</option>
-                        <option value="admin">Administración</option>
-                    </select>
+            <div class="user-controls">
+                <div class="user-badge" title="Sesión de PC actual">
+                    <i data-lucide="monitor" class="select-icon"></i>
+                    <span id="displayUsername" style="text-transform: capitalize;"></span>
+                </div>
+                <div class="role-selector">
+                    <label for="role" class="sr-only">Rol actual</label>
+                    <div class="select-wrapper">
+                        <i data-lucide="shield" class="select-icon"></i>
+                        <select id="role">
+                            <option value="user">Colaborador</option>
+                            <option value="manager">Gerencia</option>
+                            <option value="admin">Administración</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         </header>
