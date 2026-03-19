@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TBAR Meet</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo" style="gap: 1rem;">
+                <img src="./logo.png" alt="Toyota Boshoku" style="height: 45px; object-fit: contain; animation: fade-in 0.8s ease-out;">
+                <h1 style="border-left: 2px solid var(--border-color); padding-left: 1rem; font-size: 1.4rem;">TBAR <span>Meet</span></h1>
+            </div>
+            
+            <div class="role-selector">
+                <label for="role">Rol actual:</label>
+                <select id="role">
+                    <option value="user">Usuario Básico</option>
+                    <option value="manager">Gerente</option>
+                    <option value="admin">Administrador</option>
+                </select>
+                <div class="user-avatar">
+                   <i data-lucide="user"></i>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="hero">
+                <h2>Encuentra la sala ideal</h2>
+                <p>Gestiona y reserva espacios de trabajo con un solo clic. Tu próximo encuentro, simplificado.</p>
+            </div>
+
+            <!-- Controls Row -->
+            <div class="controls-row">
+                <!-- Filters -->
+                <div class="filters-container">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">Todas</button>
+                        <button class="filter-btn" data-filter="type1">Autogestión</button>
+                        <button class="filter-btn" data-filter="type2">Exclusiva Gerentes</button>
+                        <button class="filter-btn" data-filter="type3">Requiere Aprobación</button>
+                    </div>
+                </div>
+
+                <!-- View Toggle -->
+                <div class="view-toggle glass-effect">
+                    <button class="view-btn active" id="viewCardsBtn" title="Vista de Tarjetas"><i data-lucide="layout-grid"></i></button>
+                    <button class="view-btn" id="viewCalendarBtn" title="Vista de Almanaque"><i data-lucide="calendar"></i></button>
+                    <button class="view-btn" id="viewApprovalsBtn" title="Aprobaciones Pendientes" style="display: none;"><i data-lucide="inbox"></i></button>
+                    <button class="view-btn" id="viewAdminBtn" title="Gestión de Salas (ABM)" style="display: none;"><i data-lucide="layout-dashboard"></i></button>
+                    <button class="view-btn" id="viewConfigBtn" title="Configuración del Sistema" style="display: none;"><i data-lucide="settings"></i></button>
+                </div>
+            </div>
+
+            <!-- View Containers -->
+            <div id="mainViewContainer">
+                <!-- Rooms Grid -->
+                <div class="rooms-grid active-view" id="roomsGrid">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+                
+                <!-- Calendar View -->
+                <div class="calendar-view glass-effect" id="calendarView" style="display: none;">
+                    <!-- Se llenará dinámicamente -->
+                </div>
+
+                <!-- Approvals View -->
+                <div class="approvals-view" id="approvalsView" style="display: none;">
+                    <div class="approvals-header">
+                        <h3>Solicitudes Pendientes de Aprobación</h3>
+                    </div>
+                    <div class="approvals-list" id="approvalsList">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Admin Rooms ABM View -->
+                <div class="admin-view" id="adminView" style="display: none;">
+                    <div class="approvals-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <h3>Gestión de Salas Clave</h3>
+                        <button class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:15px; border-radius:980px;" onclick="openRoomModal()"><i data-lucide="plus"></i> Agregar Sala</button>
+                    </div>
+                    <div class="admin-list" id="adminRoomsList">
+                        <!-- Lista de salas (ABM) se llenará aquí -->
+                    </div>
+                </div>
+
+                <!-- Configuracion View (Admin Roles) -->
+                <div class="config-view" id="configView" style="display: none;">
+                    <div class="approvals-header" style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        <h3>Privilegios de Administrador</h3>
+                        <div style="display:flex; gap:10px;">
+                            <input type="text" id="newAdminUsername" placeholder="Nombre de usuario (ej: jose_m)" style="padding:8px 16px; border-radius:98px; border:1px solid var(--border-color); outline:none; font-family: inherit;">
+                            <button class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:15px; border-radius:980px;" onclick="addAdminUser()"><i data-lucide="user-plus"></i> Dar Permiso</button>
+                        </div>
+                    </div>
+                    <div class="admin-list" id="configAdminsList">
+                        <!-- Lista de administradores se llenará aquí -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Booking Modal -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-overlay" id="modalOverlay"></div>
+        <div class="modal-content glass-effect">
+            <div class="modal-header">
+                <h3 id="modalTitle">Reservar Sala</h3>
+                <button class="close-btn" id="closeModalBtn"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <p id="modalDescription">Detalles de la sala</p>
+                
+                <div class="form-group">
+                    <label for="bookingStart">Inicio de la reunión</label>
+                    <input type="datetime-local" id="bookingStart" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="bookingEnd">Fin de la reunión</label>
+                    <input type="datetime-local" id="bookingEnd" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="bookingReason">Motivo de la reunión (Opcional)</label>
+                    <textarea id="bookingReason" rows="3" placeholder="Ej: Revisión trimestral..."></textarea>
+                </div>
+
+                <div class="status-message" id="modalStatusMessage">
+                    <!-- Mensaje de error/exito/aviso -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="cancelBtn">Cancelar</button>
+                <button class="btn btn-primary" id="confirmBtn">Confirmar Reserva</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Room ABM Modal -->
+    <div class="modal" id="roomModal">
+        <div class="modal-overlay" onclick="closeRoomModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="roomModalTitle">Nueva Sala</h3>
+                <button class="close-btn" onclick="closeRoomModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="roomIdInput">
+                <div class="form-group">
+                    <label>Nombre de la Sala</label>
+                    <input type="text" id="roomNameInput" placeholder="Ej: Sala Einstein" required>
+                </div>
+                <div class="form-group">
+                    <label>Capacidad Mínima (Personas)</label>
+                    <input type="number" id="roomCapacityInput" placeholder="Ej: 8" required>
+                </div>
+                <div class="form-group">
+                    <label>Nivel de Acceso (Reglas)</label>
+                    <select id="roomTypeInput">
+                        <option value="type1">Autogestión (Acceso Público Libre)</option>
+                        <option value="type2">Exclusiva Gerentes (Ejecutiva)</option>
+                        <option value="type3">Requiere Aprobación (Control Estricto)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Equipamiento Principal</label>
+                    <input type="text" id="roomEquipInput" placeholder="Ej: TV 4K, Pizarra Digital...">
+                </div>
+                <div class="form-group">
+                    <label>Fotografía de la Sala (URL)</label>
+                    <input type="url" id="roomImageInput" placeholder="https:// images.unsplash.com/...">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeRoomModal()">Cancelar</button>
+                <button class="btn btn-primary" onclick="handleSaveRoom()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        Mensaje
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
