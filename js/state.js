@@ -7,7 +7,12 @@ export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdX
 // El cliente de Supabase asume que el CDN está cargado en el index.html
 export const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-export const COMPUTER_USERNAME = "artez";
+export let COMPUTER_USERNAME = localStorage.getItem('tbar_meet_username');
+
+export function setComputerUsername(name) {
+    COMPUTER_USERNAME = name;
+    localStorage.setItem('tbar_meet_username', name);
+}
 
 export const ROOM_TYPES = {
     type1: { id: 'type1', label: 'Reserva Libre', badgeClass: 'badge-free' },

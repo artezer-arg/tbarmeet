@@ -1,4 +1,4 @@
-import { state, COMPUTER_USERNAME, isRealAdmin } from './state.js';
+import { state, COMPUTER_USERNAME, setComputerUsername, isRealAdmin } from './state.js';
 import * as api from './api.js';
 import * as ui from './ui.js';
 
@@ -68,15 +68,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('modalOverlay').addEventListener('click', closeModal);
     document.getElementById('confirmBtn').addEventListener('click', handleConfirmBooking);
 
-    // Initial load
-    ui.showToast('Cargando datos...', 'info');
-    const res = await api.fetchAllData();
-    if(res.success) {
-        ui.updateRoleUI();
-        ui.renderRooms();
-        if (window.lucide) window.lucide.createIcons();
+    // Initial load logic
+    async function startApp() {
+        document.getElementById('displayUsername').textContent = COMPUTER_USERNAME;
+        ui.showToast('Cargando datos...', 'info');
+        const res = await api.fetchAllData();
+        if(res.success) {
+            ui.updateRoleUI();
+            ui.renderRooms();
+            if (window.lucide) window.lucide.createIcons();
+        } else {
+            ui.showToast('Error cargando información', 'error');
+        }
+    }
+
+    if (!COMPUTER_USERNAME) {
+        const configModal = document.getElementById('deviceConfigModal');
+        configModal.style.display = 'flex';
+        setTimeout(() => configModal.classList.add('show'), 10);
+        
+        document.getElementById('saveDeviceUserBtn').addEventListener('click', () => {
+             const input = document.getElementById('deviceUsernameInput').value.trim().toLowerCase();
+             if (input) {
+                 setComputerUsername(input);
+                 configModal.classList.remove('show');
+                 setTimeout(() => {
+                     configModal.style.display = 'none';
+                     startApp();
+                 }, 300);
+             } else {
+                 ui.showToast('Debes ingresar un nombre válido', 'error');
+             }
+        });
     } else {
-        ui.showToast('Error cargando información', 'error');
+        await startApp();
     }
 });
 

@@ -216,6 +216,28 @@
         </div>
     </div>
 
+    <!-- Device Config Modal -->
+    <div class="modal" id="deviceConfigModal" style="display: none; align-items: center; z-index: 9999;">
+        <div class="modal-overlay" style="background: rgba(17, 24, 39, 0.9);"></div>
+        <div class="modal-content glass-panel drop-in">
+            <div class="modal-header">
+                <div>
+                    <h3>Vincular Equipo</h3>
+                    <p class="subtitle">Ingresa tu identificador o usuario para usar este sistema.</p>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Tu Nombre de Usuario</label>
+                    <input type="text" id="deviceUsernameInput" placeholder="Ej: msmit" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" id="saveDeviceUserBtn">Comenzar a usar Módulo</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast">Mensaje</div>
 </body>
