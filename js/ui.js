@@ -39,6 +39,17 @@ export function canUserBook(room, role) {
     return { allowed: false, buttonText: 'No disponible' };
 }
 
+export function getDirectImageUrl(url) {
+    if (!url) return 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800';
+    // Extraer ID de la URL formato /file/d/ID/view
+    const match1 = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+    if (match1) return `https://drive.google.com/uc?export=view&id=${match1[1]}`;
+    // Extraer ID formato ?id=ID
+    const match2 = url.match(/drive\.google\.com\/.*[?&]id=([a-zA-Z0-9_-]+)/);
+    if (match2) return `https://drive.google.com/uc?export=view&id=${match2[1]}`;
+    return url;
+}
+
 export function renderRooms() {
     const grid = document.getElementById('roomsGrid');
     grid.innerHTML = '';
@@ -58,7 +69,7 @@ export function renderRooms() {
         card.className = 'room-card';
         card.innerHTML = `
             <div class="card-img-placeholder">
-                <img src="${room.imageUrl}" alt="${room.name}" class="room-card-image" loading="lazy">
+                <img src="${getDirectImageUrl(room.imageUrl)}" alt="${room.name}" class="room-card-image" loading="lazy">
                 <span class="card-badge ${typeInfo.badgeClass}">${typeInfo.label}</span>
             </div>
             <div class="card-content">

@@ -205,8 +205,12 @@
                     <input type="text" id="roomEquipInput" placeholder="TV 4K, Pizarra...">
                 </div>
                 <div class="form-group">
-                    <label>Foto (URL)</label>
-                    <input type="url" id="roomImageInput" placeholder="https://...">
+                    <label>Foto de la Sala (Subir Archivo o URL)</label>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <input type="file" id="roomImageUpload" accept="image/*">
+                        <span style="font-size:0.75rem; color:var(--text-secondary); text-align:center;">o usa un enlace web:</span>
+                        <input type="url" id="roomImageInput" placeholder="https://...">
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">

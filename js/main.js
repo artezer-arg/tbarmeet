@@ -193,6 +193,7 @@ window.openRoomModal = (id = null) => {
     document.getElementById('roomTypeInput').value = 'type1';
     document.getElementById('roomEquipInput').value = '';
     document.getElementById('roomImageInput').value = '';
+    if (document.getElementById('roomImageUpload')) document.getElementById('roomImageUpload').value = '';
     
     if (id) {
         document.getElementById('roomModalTitle').textContent = 'Editar Sala';
@@ -203,7 +204,7 @@ window.openRoomModal = (id = null) => {
             document.getElementById('roomCapacityInput').value = room.capacity;
             document.getElementById('roomTypeInput').value = room.type;
             document.getElementById('roomEquipInput').value = room.equipment;
-            document.getElementById('roomImageInput').value = room.imageUrl;
+            document.getElementById('roomImageInput').value = (room.imageUrl && !room.imageUrl.startsWith('data:image')) ? room.imageUrl : '';
         }
     } else {
         document.getElementById('roomModalTitle').textContent = 'Nueva Sala';
@@ -219,9 +220,50 @@ window.handleSaveRoom = async () => {
     const capacity = parseInt(document.getElementById('roomCapacityInput').value);
     const type = document.getElementById('roomTypeInput').value;
     const equipment = document.getElementById('roomEquipInput').value.trim() || 'Estándar';
-    const imageUrl = document.getElementById('roomImageInput').value.trim();
+    let imageUrl = document.getElementById('roomImageInput').value.trim();
+    const fileInput = document.getElementById('roomImageUpload');
 
     if (!name || isNaN(capacity) || capacity <= 0) { ui.showToast('Datos inválidos.', 'error'); return; }
+
+    const processImage = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800;
+                    let width = img.width;
+                    let height = img.height;
+                    if (width > MAX_WIDTH) { height = Math.round(height * (MAX_WIDTH / width)); width = MAX_WIDTH; }
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8)); // Reduce quality intentionally to keep DB payload small
+                };
+                img.onerror = reject;
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        });
+    };
+
+    if (fileInput && fileInput.files && fileInput.files[0]) {
+        ui.showToast('Procesando imagen local...', 'info');
+        try {
+            imageUrl = await processImage(fileInput.files[0]);
+        } catch(e) {
+            ui.showToast('Fallo al cargar la foto.', 'error');
+            return;
+        }
+    }
+
+    if (!imageUrl && id) {
+        // Mantener imageUrl anterior si está editando y no aportó nueva info de imagen
+        const existingRoom = state.rooms.find(r => r.id === parseInt(id));
+        if (existingRoom) imageUrl = existingRoom.imageUrl;
+    }
 
     const payload = { name, capacity, type, equipment, "imageUrl": imageUrl || 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=80&w=800' };
 
