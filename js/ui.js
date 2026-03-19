@@ -112,14 +112,14 @@ export function renderCalendar() {
     const filteredRooms = state.filter === 'all' ? state.rooms : state.rooms.filter(r => r.type === state.filter);
     const confirmedBookings = state.bookings.filter(b => b.status !== 'pending');
 
-    for (let h = 0; h <= 23; h++) {
+    for (let h = 4; h <= 22; h++) {
         const hourStr = `${String(h).padStart(2, '0')}:00`;
         html += `<div class="cal-time">${hourStr}</div>`;
         
         dates.forEach(d => {
-            html += `<div class="cal-cell">`;
             const ts = new Date(d); ts.setHours(h, 0, 0, 0);
             const te = new Date(d); te.setHours(h + 1, 0, 0, 0);
+            html += `<div class="cal-cell" onclick="window.handleCalendarCellClick(${ts.getTime()}, event)" style="cursor: cell;" title="Haz clic para reservar en este horario">`;
             
             filteredRooms.forEach(room => {
                 const bookingsInHour = confirmedBookings.filter(b => b.roomId == room.id && b.start_time < te.getTime() && b.end_time > ts.getTime());
@@ -130,7 +130,22 @@ export function renderCalendar() {
                      const clickAttr = canDelete ? `onclick="window.cancelBooking(${booking.id})"` : '';
                      const tooltip = `Reservado por: ${booking.requested_by || 'Anónimo'} \nMotivo: ${booking.title}`;
                      const titleStr = canDelete ? `${tooltip} \n(Clic para liberar sala)` : tooltip;
-                     const cursorStyle = canDelete ? 'cursor: pointer;' : 'cursor: default;';
+                     let cursorStyle = canDelete ? 'cursor: pointer;' : 'cursor: default;';
+                     
+                     if (booking.status === 'confirmed') {
+                         const colors = [
+                             { bg: 'rgba(59, 130, 246, 0.15)', text: '#2563eb' }, // blue
+                             { bg: 'rgba(16, 185, 129, 0.15)', text: '#059669' }, // emerald
+                             { bg: 'rgba(239, 68, 68, 0.15)', text: '#dc2626' },   // red
+                             { bg: 'rgba(139, 92, 246, 0.15)', text: '#7c3aed' }, // violet
+                             { bg: 'rgba(236, 72, 153, 0.15)', text: '#db2777' }, // pink
+                             { bg: 'rgba(6, 182, 212, 0.15)', text: '#0891b2' },  // cyan
+                             { bg: 'rgba(132, 204, 22, 0.15)', text: '#65a30d' }, // lime
+                             { bg: 'rgba(245, 158, 11, 0.15)', text: '#d97706' }  // amber
+                         ];
+                         const rc = colors[(parseInt(room.id) || 0) % colors.length];
+                         cursorStyle += `background: ${rc.bg}; color: ${rc.text}; border-left-color: ${rc.text};`;
+                     }
                      
                      html += `<div class="cal-booking ${booking.status}" title="${titleStr}" ${clickAttr} style="${cursorStyle}">
                                 <strong>${room.name}</strong><br>

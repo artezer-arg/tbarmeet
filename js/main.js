@@ -110,21 +110,71 @@ function isOverlapping(roomId, newStart, newEnd) {
     return state.bookings.some(b => b.roomId == roomId && newStart < b.end_time && b.start_time < newEnd);
 }
 
-window.openBookingModal = (roomId) => {
-    const room = state.rooms.find(r => r.id === roomId);
-    state.selectedRoom = room;
+window.handleCalendarCellClick = (timeMs, event) => {
+    // Evitar hacer click si estamos clickeando un bloque de reserva ocupado
+    if (event.target.closest('.cal-booking')) return;
+    window.openBookingModal(null, timeMs);
+};
 
+window.openBookingModal = (roomId = null, defaultStartMs = null) => {
     const modal = document.getElementById('bookingModal');
-    document.getElementById('modalTitle').textContent = `Reservar: ${room.name}`;
-    document.getElementById('modalDescription').textContent = `Aforo: ${room.capacity} pers. | Equip.: ${room.equipment}`;
+    const roomGroup = document.getElementById('bookingRoomSelectGroup');
+    const roomSelect = document.getElementById('bookingRoomSelect');
     
+    if (roomId) {
+        const room = state.rooms.find(r => r.id === roomId);
+        state.selectedRoom = room;
+        document.getElementById('modalTitle').textContent = `Reservar: ${room.name}`;
+        document.getElementById('modalDescription').textContent = `Aforo: ${room.capacity} pers. | Equip.: ${room.equipment}`;
+        document.getElementById('modalDescription').style.display = 'block';
+        roomGroup.style.display = 'none';
+        
+        const permission = ui.canUserBook(room, state.role);
+        document.getElementById('confirmBtn').textContent = permission.buttonText;
+        document.getElementById('confirmBtn').disabled = !permission.allowed;
+    } else {
+        state.selectedRoom = null;
+        document.getElementById('modalTitle').textContent = `Nueva Reserva`;
+        document.getElementById('modalDescription').style.display = 'none';
+        roomGroup.style.display = 'block';
+        
+        roomSelect.innerHTML = '<option value="">Selecciona una sala...</option>';
+        state.rooms.forEach(r => {
+            roomSelect.innerHTML += `<option value="${r.id}">${r.name} (Aforo: ${r.capacity})</option>`;
+        });
+        document.getElementById('confirmBtn').textContent = 'Confirmar';
+        document.getElementById('confirmBtn').disabled = true;
+        
+        roomSelect.onchange = (e) => {
+            const rId = parseInt(e.target.value);
+            if(!rId) {
+                document.getElementById('confirmBtn').textContent = 'Confirmar';
+                document.getElementById('confirmBtn').disabled = true;
+                state.selectedRoom = null;
+                return;
+            }
+            const selectedR = state.rooms.find(r => r.id === rId);
+            state.selectedRoom = selectedR;
+            const perm = ui.canUserBook(selectedR, state.role);
+            document.getElementById('confirmBtn').textContent = perm.buttonText;
+            document.getElementById('confirmBtn').disabled = !perm.allowed;
+        };
+    }
+
     document.getElementById('modalStatusMessage').style.display = 'none';
-    document.getElementById('bookingStart').value = '';
-    document.getElementById('bookingEnd').value = '';
-    document.getElementById('bookingReason').value = '';
     
-    const permission = ui.canUserBook(room, state.role);
-    document.getElementById('confirmBtn').textContent = permission.buttonText;
+    if (defaultStartMs) {
+        const tzOffset = new Date().getTimezoneOffset() * 60000;
+        const dStr = new Date(defaultStartMs - tzOffset).toISOString().slice(0, 16);
+        document.getElementById('bookingStart').value = dStr;
+        const endDStr = new Date(defaultStartMs + 3600000 - tzOffset).toISOString().slice(0, 16);
+        document.getElementById('bookingEnd').value = endDStr;
+    } else {
+        document.getElementById('bookingStart').value = '';
+        document.getElementById('bookingEnd').value = '';
+    }
+    
+    document.getElementById('bookingReason').value = '';
     modal.classList.add('show');
 };
 
@@ -147,11 +197,15 @@ async function handleConfirmBooking() {
     const start = new Date(startVal).getTime();
     const end = new Date(endVal).getTime();
 
+    const room = state.selectedRoom;
+    if (!room) {
+        statusMsg.style.display = 'block'; statusMsg.className = 'status-message error'; statusMsg.textContent = 'Selecciona una sala.'; return;
+    }
+
     if (end <= start) {
         statusMsg.style.display = 'block'; statusMsg.className = 'status-message error'; statusMsg.textContent = 'El fin debe ser posterior al inicio.'; return;
     }
 
-    const room = state.selectedRoom;
     if (isOverlapping(room.id, start, end)) {
         statusMsg.style.display = 'block'; statusMsg.className = 'status-message error'; statusMsg.textContent = 'Este horario ya está ocupado.'; return;
     }
