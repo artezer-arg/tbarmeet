@@ -1,5 +1,5 @@
-const url = 'https://uatvgstjiphqvqvndytn.supabase.co/rest/v1/bookings?select=*';
-const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdHZnc3RqaXBocXZxdm5keXRuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM0MTQ1MDMsImV4cCI6MjA4ODk5MDUwM30.OGfBq48kJ_gq_tgZSTq04ik1Y9XpmT6kztks9uroiNw';
+const url = 'https://znkqynnfwaiehywnlxuo.supabase.co/rest/v1/bookings?select=*';
+const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpua3F5bm5md2FpZWh5d25seHVvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMzA5NjksImV4cCI6MjA4OTYwNjk2OX0.LdNarCDU9sycfn_6wkGhS8-Osgob9rvTHIosModid_Y';
 
 async function test() {
     try {
