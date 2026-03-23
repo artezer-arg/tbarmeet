@@ -246,6 +246,45 @@
         </div>
     </div>
 
+    <!-- Quick Approval Modal -->
+    <div class="modal" id="quickApprovalModal">
+        <div class="modal-overlay" onclick="window.closeQuickApprovalModal()"></div>
+        <div class="modal-content glass-panel drop-in">
+            <div class="modal-header">
+                <div>
+                    <h3 id="quickApprovalTitle">Aprobar Reserva</h3>
+                    <p class="subtitle">Esta solicitud se encuentra pendiente.</p>
+                </div>
+                <button class="icon-btn" onclick="window.closeQuickApprovalModal()"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="text-align: center; padding: 2rem 1rem;">
+                <i data-lucide="clock" style="width: 48px; height: 48px; color: var(--warning-color); margin-bottom: 1rem;"></i>
+                <h4 id="quickApprovalInfo" style="margin-bottom: 2rem; color: var(--text-primary); font-size: 1.1rem; line-height: 1.5;"></h4>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" onclick="window.closeQuickApprovalModal()" style="flex: 1; min-width: 120px;">Mantener Pendiente</button>
+                    <button class="btn btn-reject" id="btnQuickReject" style="flex: 1; min-width: 120px; border-radius: 99px; padding: 0.75rem 1.5rem; border:none; cursor:pointer;"><i data-lucide="x-circle" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Rechazar</button>
+                    <button class="btn btn-approve" id="btnQuickApprove" style="flex: 1; min-width: 120px; border-radius: 99px; padding: 0.75rem 1.5rem; border:none; cursor:pointer;"><i data-lucide="check-circle" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Aprobar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Generic Confirm Modal -->
+    <div class="modal" id="confirmModal" style="z-index: 2000;">
+        <div class="modal-overlay" id="confirmModalOverlay"></div>
+        <div class="modal-content glass-panel drop-in" style="max-width: 400px; text-align: center;">
+            <div class="modal-body" style="padding: 2.5rem 2rem 2rem;">
+                <div id="confirmModalIcon" style="margin-bottom: 1rem; display: flex; justify-content: center;"></div>
+                <h3 id="confirmModalTitle" style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; color: var(--text-primary);">Título</h3>
+                <p id="confirmModalDesc" style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 2rem; line-height: 1.5;">Descripción</p>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="btn btn-secondary" id="confirmModalCancel" style="flex: 1;">Cancelar</button>
+                    <button class="btn" id="confirmModalOk" style="flex: 1;">Aceptar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Toast Notification -->
     <div id="toast" class="toast">Mensaje</div>
 </body>

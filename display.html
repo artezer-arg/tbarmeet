@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TBAR Meet | TV Dashboard</title>
+    <!-- Premium font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- App Entry Point (ES Module) -->
+    <script type="module" src="js/display.js"></script>
+</head>
+<body class="tv-dashboard">
+    <div class="display-container">
+        <!-- Dashboard Header -->
+        <header class="display-header glass-panel">
+            <div class="logo">
+                <img src="./logo.png" alt="Toyota Boshoku" class="logo-img">
+                <div class="logo-text">
+                    <h1>TBAR <span>Meet</span></h1>
+                </div>
+            </div>
+            
+            <div class="datetime-display">
+                <div class="time" id="currentTime">--:--</div>
+                <div class="date" id="currentDate">Cargando...</div>
+            </div>
+        </header>
+
+        <!-- Main Display Content -->
+        <main class="display-main fade-in">
+            <!-- Section 1: Attention (Pendings, Today's Highlights) -->
+            <section class="pending-section">
+                <div class="section-header glass-panel">
+                    <i data-lucide="bell-ring" class="warning-icon"></i>
+                    <h2>Pendientes de Aprobación</h2>
+                </div>
+                <div class="pending-list" id="pendingList">
+                    <!-- Dynamic pending cards go here -->
+                </div>
+            </section>
+
+            <!-- Section 2: Weekly Overview per Room -->
+            <section class="week-section">
+                <div class="section-header glass-panel space-between">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; justify-content: flex-start;">
+                        <i data-lucide="calendar-days" class="primary-icon"></i>
+                        <h2>Esta Semana</h2>
+                    </div>
+                    <div class="badge badge-free">Autorefresh 30s</div>
+                </div>
+                <div class="week-grid" id="weekGrid">
+                    <!-- Dynamic room week layouts go here -->
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

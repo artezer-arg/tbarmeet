@@ -239,6 +239,36 @@ window.handleApproval = async (id, isApproved) => {
     ui.showToast(isApproved ? 'Reserva aprobada.' : 'Solicitud rechazada.', isApproved ? 'success' : 'info');
 };
 
+let currentQuickApprovalId = null;
+
+window.closeQuickApprovalModal = () => {
+    document.getElementById('quickApprovalModal').classList.remove('show');
+    currentQuickApprovalId = null;
+};
+
+window.quickCalendarApprove = (id, requesterName) => {
+    currentQuickApprovalId = id;
+    document.getElementById('quickApprovalInfo').textContent = `¿Aprobar la reserva solicitada por ${requesterName}?`;
+    document.getElementById('quickApprovalModal').classList.add('show');
+    if (window.lucide) window.lucide.createIcons();
+};
+
+document.getElementById('btnQuickApprove')?.addEventListener('click', async () => {
+    if (currentQuickApprovalId) {
+        const id = currentQuickApprovalId;
+        window.closeQuickApprovalModal();
+        await window.handleApproval(id, true);
+    }
+});
+
+document.getElementById('btnQuickReject')?.addEventListener('click', async () => {
+    if (currentQuickApprovalId) {
+        const id = currentQuickApprovalId;
+        window.closeQuickApprovalModal();
+        await window.handleApproval(id, false);
+    }
+});
+
 window.openRoomModal = (id = null) => {
     const modal = document.getElementById('roomModal');
     document.getElementById('roomIdInput').value = '';
@@ -329,8 +359,45 @@ window.handleSaveRoom = async () => {
     ui.showToast('Cambios guardados exitosamente.', 'success');
 };
 
+window.uiConfirm = (title, message, type = 'danger', confirmText = 'Aceptar') => {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const titleEl = document.getElementById('confirmModalTitle');
+        const descEl = document.getElementById('confirmModalDesc');
+        const iconContainer = document.getElementById('confirmModalIcon');
+        const btnOk = document.getElementById('confirmModalOk');
+        const btnCancel = document.getElementById('confirmModalCancel');
+        
+        titleEl.textContent = title;
+        descEl.textContent = message;
+        btnOk.textContent = confirmText;
+        
+        if (type === 'danger') {
+            btnOk.className = 'btn btn-reject';
+            iconContainer.innerHTML = '<i data-lucide="alert-triangle" style="width: 48px; height: 48px; color: var(--danger-color);"></i>';
+        } else if (type === 'info') {
+            btnOk.className = 'btn btn-primary';
+            iconContainer.innerHTML = '<i data-lucide="info" style="width: 48px; height: 48px; color: var(--primary-color);"></i>';
+        }
+        
+        if (window.lucide) window.lucide.createIcons();
+        modal.classList.add('show');
+        
+        const cleanup = () => {
+             btnOk.onclick = null;
+             btnCancel.onclick = null;
+             document.getElementById('confirmModalOverlay').onclick = null;
+             modal.classList.remove('show');
+        };
+        
+        btnOk.onclick = () => { cleanup(); resolve(true); };
+        btnCancel.onclick = () => { cleanup(); resolve(false); };
+        document.getElementById('confirmModalOverlay').onclick = () => { cleanup(); resolve(false); };
+    });
+};
+
 window.deleteRoom = async (id) => {
-    if (confirm('¿Eliminar sala definitivamente? Sus reservas también se borrarán.')) {
+    if (await window.uiConfirm('Eliminar Sala', '¿Eliminar sala definitivamente? Sus reservas también se borrarán.', 'danger', 'Eliminar')) {
         await api.dbDeleteRoom(id);
         await api.fetchAllData();
         ui.renderAdminRooms();
@@ -349,7 +416,7 @@ window.cancelBooking = async (id) => {
         return;
     }
     
-    if (confirm('¿Liberar la sala en este horario?')) {
+    if (await window.uiConfirm('Liberar Sala', '¿Liberar la sala en este horario?', 'danger', 'Liberar')) {
         await api.dbCancelBooking(id);
         await api.fetchAllData();
         if (document.getElementById('calendarView').style.display !== 'none') ui.renderCalendar();
@@ -383,9 +450,9 @@ window.addAdminUser = async () => {
 
 window.removeAdminUser = async (id, username) => {
     if (username === COMPUTER_USERNAME) {
-        if (!confirm('Peligro: Te quitarás tus permisos. ¿Seguro?')) return;
+        if (!(await window.uiConfirm('Quitar mis permisos', 'Peligro: Te quitarás tus permisos de administrador. ¿Seguro?', 'danger', 'Quitar mis accesos'))) return;
     } else {
-        if (!confirm(`¿Quitar accesos a ${username}?`)) return;
+        if (!(await window.uiConfirm('Quitar Accesos', `¿Quitar accesos a ${username}?`, 'danger', 'Quitar'))) return;
     }
     
     await api.dbRemoveUserRole(id);

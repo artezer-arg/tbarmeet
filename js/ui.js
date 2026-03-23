@@ -110,7 +110,7 @@ export function renderCalendar() {
     dates.forEach(d => html += `<div class="cal-header">${d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: '2-digit' })}</div>`);
 
     const filteredRooms = state.filter === 'all' ? state.rooms : state.rooms.filter(r => r.type === state.filter);
-    const confirmedBookings = state.bookings.filter(b => b.status !== 'pending');
+    const allBookings = state.bookings;
 
     for (let h = 4; h <= 22; h++) {
         const hourStr = `${String(h).padStart(2, '0')}:00`;
@@ -122,15 +122,32 @@ export function renderCalendar() {
             html += `<div class="cal-cell" onclick="window.handleCalendarCellClick(${ts.getTime()}, event)" style="cursor: cell;" title="Haz clic para reservar en este horario">`;
             
             filteredRooms.forEach(room => {
-                const bookingsInHour = confirmedBookings.filter(b => b.roomId == room.id && b.start_time < te.getTime() && b.end_time > ts.getTime());
+                const bookingsInHour = allBookings.filter(b => b.roomId == room.id && b.start_time < te.getTime() && b.end_time > ts.getTime());
                 
                 bookingsInHour.forEach(booking => {
                      const isOwner = booking.requested_by === COMPUTER_USERNAME;
-                     const canDelete = isRealAdmin() || isOwner;
-                     const clickAttr = canDelete ? `onclick="window.cancelBooking(${booking.id})"` : '';
-                     const tooltip = `Reservado por: ${booking.requested_by || 'Anónimo'} \nMotivo: ${booking.title}`;
-                     const titleStr = canDelete ? `${tooltip} \n(Clic para liberar sala)` : tooltip;
+                     const isAdminRef = isRealAdmin();
+                     const canDelete = isAdminRef || isOwner;
+                     
+                     let clickAttr = canDelete ? `onclick="window.cancelBooking(${booking.id})"` : '';
+                     let tooltip = `Reservado por: ${booking.requested_by || 'Anónimo'} \nMotivo: ${booking.title}`;
+                     let titleStr = canDelete ? `${tooltip} \n(Clic para liberar sala)` : tooltip;
                      let cursorStyle = canDelete ? 'cursor: pointer;' : 'cursor: default;';
+                     let statusHtml = '';
+                     
+                     if (booking.status === 'pending') {
+                         statusHtml = `<div style="font-size: 10px; margin-top: 4px; font-weight: 600; display:flex; align-items:center; gap:3px;"><i data-lucide="clock" style="width:12px;height:12px"></i> Pendiente</div>`;
+                         
+                         if (isAdminRef) {
+                             clickAttr = `onclick="window.quickCalendarApprove(${booking.id}, '${booking.requested_by || 'Anónimo'}')"`
+                             cursorStyle = 'cursor: pointer;';
+                             titleStr = `${tooltip} \n[ PENDIENTE - Clic para Aprobar/Rechazar ]`;
+                         } else {
+                             clickAttr = '';
+                             cursorStyle = 'cursor: not-allowed; opacity: 0.8;';
+                             titleStr = `${tooltip} \n[ Pendiente de Aprobación ]`;
+                         }
+                     }
                      
                      if (booking.status === 'confirmed') {
                          const colors = [
@@ -150,6 +167,7 @@ export function renderCalendar() {
                      html += `<div class="cal-booking ${booking.status}" title="${titleStr}" ${clickAttr} style="${cursorStyle}">
                                 <strong>${room.name}</strong><br>
                                 <span style="font-weight:400; font-size:10px; opacity:0.9">${booking.requested_by || 'Anónimo'}</span>
+                                ${statusHtml}
                               </div>`;
                 });
             });
@@ -158,6 +176,7 @@ export function renderCalendar() {
     }
     html += '</div></div>';
     container.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
 }
 
 export function renderApprovals() {
